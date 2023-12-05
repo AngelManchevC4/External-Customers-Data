@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<services xmlns="http://www.demandware.com/xml/impex/services/2014-09-26">
+    <service-credential service-credential-id="http.external.customer.credentials">
+        <url>https://json-server-app-707ded616226.herokuapp.com/</url>
+        <user-id/>
+        <password masked="true">********</password>
+    </service-credential>
+
+    <service-credential service-credential-id="http.recaptcha.credentials">
+        <url>https://www.google.com/recaptcha/api/siteverify</url>
+        <user-id/>
+        <password masked="true">********</password>
+    </service-credential>
+
+    <service-credential service-credential-id="http.twilio.sms.notification">
+        <url>https://api.twilio.com/2010-04-01/Accounts/AC6aa135b953ffe92b558e7b89aff92faf/Messages.json</url>
+        <user-id>AC6aa135b953ffe92b558e7b89aff92faf</user-id>
+        <password masked="true">********</password>
+    </service-credential>
+
+    <service-profile service-profile-id="http.external.customer.profile">
+        <timeout-millis>5000</timeout-millis>
+        <rate-limit-enabled>false</rate-limit-enabled>
+        <rate-limit-calls>0</rate-limit-calls>
+        <rate-limit-millis>0</rate-limit-millis>
+        <cb-enabled>true</cb-enabled>
+        <cb-calls>0</cb-calls>
+        <cb-millis>0</cb-millis>
+    </service-profile>
+
+    <service-profile service-profile-id="http.recaptcha.profile">
+        <timeout-millis>5000</timeout-millis>
+        <rate-limit-enabled>false</rate-limit-enabled>
+        <rate-limit-calls>0</rate-limit-calls>
+        <rate-limit-millis>0</rate-limit-millis>
+        <cb-enabled>false</cb-enabled>
+        <cb-calls>0</cb-calls>
+        <cb-millis>0</cb-millis>
+    </service-profile>
+
+    <service-profile service-profile-id="http.twilio.sms.notification">
+        <timeout-millis>5000</timeout-millis>
+        <rate-limit-enabled>false</rate-limit-enabled>
+        <rate-limit-calls>0</rate-limit-calls>
+        <rate-limit-millis>0</rate-limit-millis>
+        <cb-enabled>true</cb-enabled>
+        <cb-calls>0</cb-calls>
+        <cb-millis>0</cb-millis>
+    </service-profile>
+
+    <service service-id="http.captcha.verify">
+        <service-type>HTTP</service-type>
+        <enabled>true</enabled>
+        <log-prefix/>
+        <comm-log-enabled>false</comm-log-enabled>
+        <force-prd-enabled>true</force-prd-enabled>
+        <mock-mode-enabled>false</mock-mode-enabled>
+        <profile-id>http.recaptcha.profile</profile-id>
+        <credential-id>http.recaptcha.credentials</credential-id>
+    </service>
+
+    <service service-id="http.external.customer.data">
+        <service-type>HTTP</service-type>
+        <enabled>true</enabled>
+        <log-prefix>customersService</log-prefix>
+        <comm-log-enabled>true</comm-log-enabled>
+        <force-prd-enabled>true</force-prd-enabled>
+        <mock-mode-enabled>false</mock-mode-enabled>
+        <profile-id>http.external.customer.profile</profile-id>
+        <credential-id>http.external.customer.credentials</credential-id>
+    </service>
+
+    <service service-id="http.twilio.sms.notification">
+        <service-type>HTTP</service-type>
+        <enabled>true</enabled>
+        <log-prefix/>
+        <comm-log-enabled>false</comm-log-enabled>
+        <force-prd-enabled>true</force-prd-enabled>
+        <mock-mode-enabled>false</mock-mode-enabled>
+        <profile-id>http.twilio.sms.notification</profile-id>
+        <credential-id>http.twilio.sms.notification</credential-id>
+    </service>
+
+</services>

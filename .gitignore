@@ -24,7 +24,6 @@ cartridges/app_storefront_base/cartridge/static/en_GB/js/
 cartridges/app_storefront_base/cartridge/static/en_GB/fonts/
 
 cartridges/dw-api-types-master
-cartridges/link_heroku_app
 
 coverage/
 npm-debug.log
