@@ -7,6 +7,7 @@
 var server = require('server');
 var base = module.superModule;
 
+var HookMgr = require('dw/system/HookMgr');
 var URLUtils = require('dw/web/URLUtils');
 var Resource = require('dw/web/Resource');
 var csrfProtection = require('*/cartridge/scripts/middleware/csrf');
@@ -55,28 +56,38 @@ server.replace('SaveAddress', csrfProtection.validateAjaxRequest, function (req,
         res.setViewData(addressFormObj);
         this.on('route:BeforeComplete', function () { // eslint-disable-line no-shadow
             var formInfo = res.getViewData();
+
             var response;
 
             const UUID = UUIDUtils.createUUID();
 
-            let customAddress = formInfo;
-            customAddress.customerEmail = customer.profile.email;
-            customAddress.customerNumber = customer.profile.customerNo;
-            customAddress.customerExternalDataBaseID = customer.profile.custom.externalDataBaseID;
-            delete customAddress.addressForm;
-            delete customAddress.action;
-            delete customAddress.queryString;
-
             if (req.querystring.addressId) {
+
                 var addressExternal = addressBook.getAddress(req.querystring.addressId).custom.externalDataBaseID;
 
-                response = externalCustomers.externalCustomers({
-                    method: "PATCH", url: `addressBook/${addressExternal}`, body: { id: addressExternal, customAddress: customAddress }
-                })
+                if (HookMgr.hasHook("app.external.database")) {
+                    response = HookMgr.callHook("app.external.database", "updateAddress", addressExternal, formInfo)
+                };
+
+                if (!response.isOk()) {
+                    errorMessage = Resource.msg("error.message.unable.to.edit.address", "address", null);
+                    res.setStatusCode(500);
+                    res.render(errorMessage);
+                    next();
+                }
+
             } else {
-                response = externalCustomers.externalCustomers({
-                    method: "POST", url: "addressBook", body: { id: UUID, customAddress: customAddress },
-                });
+
+                if (HookMgr.hasHook("app.external.database")) {
+                    response = HookMgr.callHook("app.external.database", "createAddress", UUID, formInfo)
+                };
+
+                if (!response.isOk()) {
+                    errorMessage = Resource.msg("error.message.unable.to.create.address", "address", null);
+                    res.setStatusCode(500);
+                    res.render(errorMessage);
+                    next();
+                }
             }
 
             Transaction.wrap(function () {
@@ -164,9 +175,11 @@ server.replace('DeleteAddress', userLoggedIn.validateLoggedInAjax, function (req
     this.on('route:BeforeComplete', function () { // eslint-disable-line no-shadow
         var length;
 
-        var response = externalCustomers.externalCustomers({
-                method: "DELETE", url: `addressBook/${address.custom.externalDataBaseID}`
-            });
+        var response;
+
+        if (HookMgr.hasHook("app.external.database")) {
+            response = HookMgr.callHook("app.external.database", "deleteAddress", address)
+        };
 
         Transaction.wrap(function () {
             addressBook.removeAddress(address);

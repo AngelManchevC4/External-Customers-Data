@@ -28,7 +28,7 @@ var externalCustomers = function(args) {
 
     });
 
-    return externalCustomersService.call(args).object;
+    return externalCustomersService.call(args);
 }
 module.exports = {
     externalCustomers: externalCustomers,

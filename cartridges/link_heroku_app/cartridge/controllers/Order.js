@@ -8,6 +8,7 @@ var server = require('server');
 
 var base = module.superModule;
 
+var HookMgr = require('dw/system/HookMgr');
 var Resource = require('dw/web/Resource');
 var URLUtils = require('dw/web/URLUtils');
 var csrfProtection = require('*/cartridge/scripts/middleware/csrf');
@@ -83,35 +84,18 @@ server.replace(
 
         const UUID = UUIDUtils.createUUID();
 
-        let externalBillingAddress = orderModel.billing.billingAddress.address;
+        var response;
 
-        for (let key in externalBillingAddress) {
-            if (externalBillingAddress[key] === null) {
-                delete externalBillingAddress[key];
-            }
+        if (HookMgr.hasHook("app.external.database")) {
+            response = HookMgr.callHook("app.external.database", "createShippingAndBillingAddress", UUID, orderModel)
+        };
+
+        if (!response.isOk()) {
+            errorMessage = Resource.msg("error.message.unable.to.create.shipping.billing.address", "address", null);
+            res.setStatusCode(500);
+            res.render(errorMessage);
+            next();
         }
-
-        let externalShippingAddress = orderModel.shipping[0].shippingAddress;
-
-        for (let key in externalShippingAddress) {
-            if (externalShippingAddress[key] === null) {
-                delete externalShippingAddress[key];
-            }
-        }
-
-        let { orderEmail, orderNumber, priceTotal } = orderModel;
-
-        let { grandTotal, subTotal, totalShippingCost, totalTax } = orderModel.totals
-
-        var response = externalCustomers.externalCustomers({
-            method: "POST", url: "shippingAndBillingAddress", body: {
-                id: UUID,
-                orderInfo: { orderEmail, orderNumber, priceTotal },
-                orderTotalsInfo: { grandTotal, subTotal, totalShippingCost, totalTax },
-                billingAddress: externalBillingAddress,
-                shippingAddress: externalShippingAddress
-            }
-        })
 
         if (!req.currentCustomer.profile) {
             passwordForm = server.forms.getForm('newPasswords');
@@ -193,16 +177,18 @@ server.replace(
 
                 const UUID = UUIDUtils.createUUID();
 
-                var responseCustomer = externalCustomers.externalCustomers({
-                    method: "POST", url: "customers", body: {
-                        id: UUID,
-                        firstName: registrationData.firstName,
-                        lastName: registrationData.lastName,
-                        email: registrationData.email,
-                        password: registrationData.password,
-                        phone: registrationData.phone,
-                    }
-                });
+                var response;
+
+                if (HookMgr.hasHook("app.external.database")) {
+                    response = HookMgr.callHook("app.external.database", "createAccountFromOrder", UUID,registrationData)
+                };
+
+                if (!response.isOk()) {
+                    errorMessage = Resource.msg("error.message.unable.to.create.customer", "account", null);
+                    res.setStatusCode(500);
+                    res.render(errorMessage);
+                    next();
+                }
 
                 delete registrationData.email;
                 delete registrationData.password;
@@ -254,23 +240,19 @@ server.replace(
 
                 var guestCustomerAddresses = addressHelpers.gatherShippingAddresses(order);
 
-                guestCustomerAddresses.forEach(address => {
 
-                    for (let key in address) {
-                        if (address[key] === null) {
-                            delete address[key];
-                        }
-                    }
+                var response;
 
-                    address.customerEmail = newCustomerProfile.email;
-                    address.customerNumber = newCustomerProfile.customerNo;
-                    address.customerExternalDataBaseID = UUID;
+                if (HookMgr.hasHook("app.external.database")) {
+                    response = HookMgr.callHook("app.external.database", "createAddressFromOrder", guestCustomerAddresses)
+                };
 
-                    var responseAddress = externalCustomers.externalCustomers({
-                        method: "POST", url: "addressBook", body: { id: UUIDUtils.createUUID(), customAddress: address },
-                    });
-
-                })
+                if (!response.isOk()) {
+                    errorMessage = Resource.msg("error.message.unable.to.create.address", "address", null);
+                    res.setStatusCode(500);
+                    res.render(errorMessage);
+                    next();
+                }
 
                 delete registrationData.firstName;
                 delete registrationData.lastName;

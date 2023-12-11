@@ -6,8 +6,12 @@
 
 var server = require('server');
 var base = module.superModule;
+server.extend(base);
+
+var HookMgr = require('dw/system/HookMgr');
 
 var externalCustomers = require('~/cartridge/scripts/services/externalCustomers')
+var externalDatabaseHooks = require('~/cartridge/scripts/hooks/externalDatabase');
 var csrfProtection = require('*/cartridge/scripts/middleware/csrf');
 var userLoggedIn = require('*/cartridge/scripts/middleware/userLoggedIn');
 var consentTracking = require('*/cartridge/scripts/middleware/consentTracking');
@@ -108,16 +112,18 @@ server.replace(
 
                     const UUID = UUIDUtils.createUUID();
 
-                    var response = externalCustomers.externalCustomers({
-                        method: "POST", url: "customers", body: {
-                            id: UUID,
-                            firstName: registrationForm.firstName,
-                            lastName: registrationForm.lastName,
-                            email: registrationForm.email,
-                            password: registrationForm.password,
-                            phone: registrationForm.phone,
-                        }
-                    })
+                    var response;
+
+                    if (HookMgr.hasHook("app.external.database")) {
+                        response = HookMgr.callHook("app.external.database", "createCustomer", UUID, registrationForm)
+                    };
+
+                    if (!response.isOk()) {
+                        errorMessage = Resource.msg("error.message.unable.to.create.customer", "account", null);
+                        res.setStatusCode(500);
+                        res.render(errorMessage);
+                        next();
+                    }
 
                     // attempt to create a new user and log that user in.
                     try {
@@ -286,17 +292,18 @@ server.replace(
                 delete formInfo.password;
                 delete formInfo.confirmEmail;
 
-                let test = formInfo;
+                var response;
 
-                var response = externalCustomers.externalCustomers({
-                    method: "PATCH", url: `customers/${customer.profile.custom.externalDataBaseID}`, body: {
-                        firstName: formInfo.firstName,
-                        lastName: formInfo.lastName,
-                        email: formInfo.email,
-                        password: formInfo.password,
-                        phone: formInfo.phone,
-                    }
-                })
+                if (HookMgr.hasHook("app.external.database")) {
+                    response = HookMgr.callHook("app.external.database", "editCustomer", customer, formInfo)
+                };
+
+                if (!response.isOk()) {
+                    errorMessage = Resource.msg("error.message.unable.to.edit.customer", "account", null);
+                    res.setStatusCode(500);
+                    res.render(errorMessage);
+                    next();
+                }
 
                 if (customerLogin) {
                     Transaction.wrap(function () {
@@ -403,11 +410,18 @@ server.replace(
                     );
                 });
 
-                var response = externalCustomers.externalCustomers({
-                    method: "PATCH", url: `customers/${customer.profile.custom.externalDataBaseID}`, body: {
-                        password: formInfo.newPassword,
-                    }
-                });
+                var response;
+
+                if (HookMgr.hasHook("app.external.database")) {
+                    response = HookMgr.callHook("app.external.database", "editCustomerPassword", customer, formInfo)
+                };
+
+                if (!responseAddress.isOk()) {
+                    errorMessage = Resource.msg("error.message.unable.to.edit.customer.password", "account", null);
+                    res.setStatusCode(500);
+                    res.render(errorMessage);
+                    next();
+                }
 
                 if (status.error) {
                     if (!CustomerMgr.isAcceptablePassword(newPasswords.newpassword.value)) {
